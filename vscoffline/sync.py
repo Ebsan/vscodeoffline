@@ -325,9 +325,10 @@ class VSCUpdates(object):
 
 class VSCMarketplace(object):
    
-    def __init__(self, insider, prerelease):
+    def __init__(self, insider, prerelease, version):
         self.insider = insider
         self.prerelease = prerelease
+        self.version = version
 
     def get_recommendations(self, destination):
         recommendations: list[VSCExtensionDefinition] = self.search_top_n()
@@ -479,7 +480,6 @@ class VSCMarketplace(object):
                 if i > 0:
                     log.info("Retrying pull page %d attempt %d." % (pageNumber, i+1))
                 try:
-                    # log.info(f"Headers: {self._headers()}")
                     result = requests.post(vsc.URL_MARKETPLACEQUERY, headers=self._headers(), json=query, allow_redirects=True, timeout=vsc.TIMEOUT)
                     if result:
                         break
@@ -516,8 +516,6 @@ class VSCMarketplace(object):
             'filters': [self._query_filter(filtertype, filtervalue, pageNumber, pageSize)],
             'flags': int(queryFlags)
         }
-        # log.info("Query Payload")
-        # log.info(payload)
         return payload
 
     def _query_filter(self, filtertype, filtervalue, pageNumber, pageSize):
@@ -550,8 +548,7 @@ class VSCMarketplace(object):
         return vsc.QueryFlags.IncludeFiles | vsc.QueryFlags.IncludeVersionProperties | vsc.QueryFlags.IncludeAssetUri | \
             vsc.QueryFlags.IncludeStatistics | vsc.QueryFlags.IncludeStatistics | vsc.QueryFlags.IncludeLatestVersionOnly
 
-    # TODO: Update version to be configurable
-    def _headers(self, version='1.34.0'):
+    def _headers(self):
         if self.insider:
             insider = '-insider'
         else:
@@ -560,8 +557,8 @@ class VSCMarketplace(object):
             'content-type': 'application/json',
             'accept': 'application/json;api-version=3.0-preview.1',
             'accept-encoding': 'gzip, deflate, br',
-            'User-Agent': f'VSCode {version}{insider}',
-            'x-market-client-Id': f'VSCode {version}{insider}',            
+            'User-Agent': f'VSCode {self.version}{insider}',
+            'x-market-client-Id': f'VSCode {self.version}{insider}',            
             'x-market-user-Id': str(uuid.uuid4())
         }
 
@@ -589,6 +586,7 @@ if __name__ == '__main__':
     parser.add_argument('--update-extensions', dest='updateextensions', action='store_true', help='Download extensions')
     parser.add_argument('--update-malicious-extensions', dest='updatemalicious', action='store_true', help='Update the malicious extension list')
     parser.add_argument('--skip-binaries', dest='skipbinaries', action='store_true', help='Skip downloading binaries')
+    parser.add_argument('--vscode-version', dest='version', default='1.69.2', help='VSCode version to search extensions as.')
     parser.add_argument('--debug', dest='debug', action='store_true', help='Show debug output')
     parser.add_argument('--logfile', dest='logfile', default=None, help='Sets a logfile to store loggging output')
     config = parser.parse_args()
@@ -635,7 +633,7 @@ if __name__ == '__main__':
     while True:
         versions = []
         extensions = {}
-        mp = VSCMarketplace(config.checkinsider, config.prerelease)
+        mp = VSCMarketplace(config.checkinsider, config.prerelease, config.version)
 
         if config.checkbinaries and not config.skipbinaries:
             log.info('Syncing VS Code Update Versions')
@@ -685,8 +683,6 @@ if __name__ == '__main__':
             log.info('Syncing VS Code Malicious Extension List')
             malicious = mp.get_malicious(os.path.abspath(config.artifactdir), extensions)
 
-        # extensions is populated with all the different extensions from the command line arguments. By this point
-        # it could be a lot of extensions, 5000+
         if config.updateextensions:
             log.info(f'Checking and Downloading Updates for {len(extensions)} Extensions')
             count = 0
