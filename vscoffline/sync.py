@@ -200,6 +200,7 @@ class VSCExtensionDefinition(object):
 
     def download_assets_new(self, destination):
         for version in self.versions:
+            targetplatform = ''
             if "targetPlatform" in version:
                 targetplatform = version["targetPlatform"]
             ver_destination = os.path.join(destination, self.identity, version["version"], targetplatform)
@@ -232,6 +233,7 @@ class VSCExtensionDefinition(object):
         """
         bonusextensions = []
         for version in self.versions:
+            targetplatform = ''
             if "targetPlatform" in version:
                 targetplatform = version["targetPlatform"]
             manifestpath = os.path.join(destination, self.identity, version["version"], targetplatform, 'Microsoft.VisualStudio.Code.Manifest')
@@ -264,7 +266,6 @@ class VSCExtensionDefinition(object):
         return prerelease
 
     def get_latest_release_versions(self):
-        log.debug(f'*** Searching through {len(self.versions)} versions for release versions ONLY...')
         if self.versions and len(self.versions) > 1:
             releaseVersions = list(filter(lambda x: VSCExtensionVersionDefinition.from_dict(x).isprerelease() == False, self.versions))
             releaseVersions.sort(reverse=True, key=lambda x: x["lastUpdated"])
@@ -274,10 +275,6 @@ class VSCExtensionDefinition(object):
             for version in releaseVersions:
                 if version["version"] == latestversion:
                     filteredversions.append(version)
-            
-            log.debug(f'*** Latest Version: {latestversion}')
-            log.debug(f'*** Found {len(filteredversions)} total versions...')
-            # TODO Grab all targetPlatforms of the same version. Do all extensions have targetPlatforms?
             
             return filteredversions
         return self.versions
@@ -741,7 +738,7 @@ if __name__ == '__main__':
 
             for bonusextension in bonus:
                 log.debug(f'Processing Embedded Extension: {bonusextension}')
-                bonusextension.download_assets(config.artifactdir_extensions)                
+                bonusextension.download_assets_new(config.artifactdir_extensions)                
                 bonusextension.save_state(config.artifactdir_extensions)
                 
         log.info('Complete')
