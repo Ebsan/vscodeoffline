@@ -238,12 +238,24 @@ class VSCExtensionDefinition(object):
                     prerelease = True
         return prerelease
 
-    def get_latest_prerelease_version(self):
+    def get_latest_release_versions(self):
+        log.debug(f'*** Searching through {len(self.versions)} versions for release versions ONLY...')
         if self.versions and len(self.versions) > 1:
-            filtered = list(filter(lambda x: VSCExtensionVersionDefinition.from_dict(x).isprerelease() == False, self.versions))
-            filtered.sort(reverse=True, key=lambda x: x["lastUpdated"])
-            return filtered[0]
-        return self.versions[0]
+            releaseVersions = list(filter(lambda x: VSCExtensionVersionDefinition.from_dict(x).isprerelease() == False, self.versions))
+            releaseVersions.sort(reverse=True, key=lambda x: x["lastUpdated"])
+            latestversion = releaseVersions[0]["version"]
+
+            filteredversions = []
+            for version in releaseVersions:
+                if version["version"] == latestversion:
+                    filteredversions.append(version)
+            
+            log.debug(f'*** Latest Version: {latestversion}')
+            log.debug(f'*** Found {len(filteredversions)} total versions...')
+            # TODO Grab all targetPlatforms of the same version. Do all extensions have targetPlatforms?
+            
+            return filteredversions
+        return self.versions
 
     def version(self):
         if self.versions and len(self.versions) > 1:
@@ -354,7 +366,7 @@ class VSCMarketplace(object):
                 prereleasecount += 1
                 extension = self.search_release_by_extension_id(recommendation.extensionId) 
                 if extension:
-                    recommendation.versions = [extension.get_latest_prerelease_version()]
+                    recommendation.versions = extension.get_latest_release_versions()
         return recommendations
 
     def get_recommendations_old(self, destination):
@@ -444,7 +456,7 @@ class VSCMarketplace(object):
             vsc.QueryFlags.IncludeStatistics | vsc.QueryFlags.IncludeStatistics | vsc.QueryFlags.IncludeVersions
             result = self._query_marketplace(vsc.FilterType.ExtensionName, extensionname, queryFlags=releaseQueryFlags)
             if result and len(result) == 1:
-                result[0].versions = [result[0].get_latest_prerelease_version()]
+                result[0].versions = result[0].get_latest_release_versions()
 
         if result and len(result) == 1:
             return result[0]
@@ -609,7 +621,6 @@ if __name__ == '__main__':
         config.checkbinaries = True
         config.checkextensions = True
         config.updatebinaries = True
-        # config.updateextensions = False
         config.updateextensions = True
         config.updatemalicious = True
         config.checkspecified = True
@@ -670,7 +681,6 @@ if __name__ == '__main__':
             log.info(f'Checking Specific VS Code Extension: {config.extensionname}')
             result = mp.search_by_extension_name(config.extensionname)
             if result:
-                log.info(result)
                 extensions[result.identity] = result
         
         if config.checkextensions:
