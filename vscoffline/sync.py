@@ -198,8 +198,31 @@ class VSCExtensionDefinition(object):
             if 'extensionId' in raw:
                 self.extensionId = raw['extensionId']
 
+    def download_assets_new(self, destination):
+        for version in self.versions:
+            if "targetPlatform" in version:
+                targetplatform = version["targetPlatform"]
+            ver_destination = os.path.join(destination, self.identity, version["version"], targetplatform)
+            for file in version["files"]:
+                log.debug(f'*** Downloading {file["assetType"]} from {file["source"]}')
+                url = file["source"]
+                if not url:
+                    log.warning('download_asset() cannot download update as asset url is missing')
+                    return
+                
+                log.debug(f'*** Downloading from url {url}')
+                asset = file["assetType"]
+                destfile = os.path.join(ver_destination, f'{asset}')
+                create_tree(os.path.abspath(os.sep), (destfile,))
+                if not os.path.exists(destfile):
+                    log.debug(f'Downloading {self.identity} {asset} to {destfile}')
+                    result = requests.get(url, allow_redirects=True, timeout=vsc.TIMEOUT)
+                    with open(destfile, 'wb') as dest:
+                        dest.write(result.content)
+
     def download_assets(self, destination):
         availableassets = self._get_asset_types()
+        log.debug(f'*** Downloading {len(availableassets)} assets...')
         for availableasset in availableassets:
             self._download_assets(destination, availableasset)        
 
@@ -209,7 +232,9 @@ class VSCExtensionDefinition(object):
         """
         bonusextensions = []
         for version in self.versions:
-            manifestpath = os.path.join(destination, self.identity, version["version"], 'Microsoft.VisualStudio.Code.Manifest')
+            if "targetPlatform" in version:
+                targetplatform = version["targetPlatform"]
+            manifestpath = os.path.join(destination, self.identity, version["version"], targetplatform, 'Microsoft.VisualStudio.Code.Manifest')
             manifest = vsc.Utility.load_json(manifestpath)    
             if manifest and 'extensionPack' in manifest:
                 for extname in manifest['extensionPack']:
@@ -272,6 +297,7 @@ class VSCExtensionDefinition(object):
         for version in self.versions:
             ver_destination = os.path.join(destination, self.identity, version["version"])
             url = self._get_asset_source(asset, version["version"])
+            log.debug(f'*** Downloading from url {url}')
             if not url:
                 log.warning('download_asset() cannot download update as asset url is missing')
                 return
@@ -285,10 +311,16 @@ class VSCExtensionDefinition(object):
     
     def _get_asset_types(self):
         assets = []
+        log.debug(f'*** Found {len(self.versions)} versions to download...')
         for version in self.versions:
+            log.debug(f'*** Downloading version {version["version"]}')
+            if "targetPlatform" in version:  
+                log.debug(f'*** Downloading {version["version"]}:{version["targetPlatform"]}')
             for asset in version['files']:
                 if 'assetType' in asset:
                     assets.append(asset['assetType'])
+        log.debug(f'*** Retrieved {len(assets)} assets...')        
+        log.debug(f'*** Assets: {assets}')
         return assets
 
     def _get_asset_source(self, name, version):
@@ -700,7 +732,9 @@ if __name__ == '__main__':
             for identity in extensions:
                 if count % 100 == 0:
                     log.info(f'Progress {count}/{len(extensions)} ({count/len(extensions)*100:.1f}%)')
-                extensions[identity].download_assets(config.artifactdir_extensions)
+                # TODO Testing new download function
+                # extensions[identity].download_assets(config.artifactdir_extensions)
+                extensions[identity].download_assets_new(config.artifactdir_extensions)
                 bonus = extensions[identity].process_embedded_extensions(config.artifactdir_extensions, mp) + bonus
                 extensions[identity].save_state(config.artifactdir_extensions)
                 count = count + 1
