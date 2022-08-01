@@ -162,6 +162,7 @@ class VSCGallery(object):
 
             # Repoint asset urls
             for version in extension["versions"]:
+                targetPlatform = ''
                 if "targetPlatform" in version:
                     targetPlatform = version['targetPlatform']
                 asseturi = vsc.URLROOT + os.path.join(extensiondir, version['version'], targetPlatform)
