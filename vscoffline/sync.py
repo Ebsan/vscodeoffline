@@ -230,7 +230,8 @@ class VSCExtensionDefinition(object):
             targetplatform = ''
             if "targetPlatform" in version:
                 targetplatform = version["targetPlatform"]
-            ver_destination = os.path.join(destination, self.identity, version["version"], targetplatform)
+            ver_destination = os.path.join(
+                destination, self.identity, version["version"], targetplatform)
             for file in version["files"]:
                 url = file["source"]
                 if not url:
