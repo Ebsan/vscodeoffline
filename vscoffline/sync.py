@@ -225,36 +225,12 @@ class VSCExtensionDefinition(object):
             if 'extensionId' in raw:
                 self.extensionId = raw['extensionId']
 
-    def download_assets_new(self, destination):
-        for version in self.versions:
-            targetplatform = ''
-            if "targetPlatform" in version:
-                targetplatform = version["targetPlatform"]
-            ver_destination = os.path.join(destination, self.identity, version["version"], targetplatform)
-            for file in version["files"]:
-                log.debug(f'*** Downloading {file["assetType"]} from {file["source"]}')
-                url = file["source"]
-                if not url:
-                    log.warning('download_asset() cannot download update as asset url is missing')
-                    return
-                
-                log.debug(f'*** Downloading from url {url}')
-                asset = file["assetType"]
-                destfile = os.path.join(ver_destination, f'{asset}')
-                create_tree(os.path.abspath(os.sep), (destfile,))
-                if not os.path.exists(destfile):
-                    log.debug(f'Downloading {self.identity} {asset} to {destfile}')
-                    result = requests.get(url, allow_redirects=True, timeout=vsc.TIMEOUT)
-                    with open(destfile, 'wb') as dest:
-                        dest.write(result.content)
-
     def download_assets(self, destination):
         for version in self.versions:
             targetplatform = ''
             if "targetPlatform" in version:
                 targetplatform = version["targetPlatform"]
-            ver_destination = os.path.join(
-                destination, self.identity, version["version"], targetplatform)
+            ver_destination = os.path.join(destination, self.identity, version["version"], targetplatform)
             for file in version["files"]:
                 url = file["source"]
                 if not url:
