@@ -162,24 +162,16 @@ class VSCGallery(object):
 
             # Repoint asset urls
             for version in extension["versions"]:
-                targetPlatform = ''
                 if "targetPlatform" in version:
                     targetPlatform = version['targetPlatform']
-                asseturi = vsc.URLROOT + os.path.join(extensiondir, version['version'], targetPlatform)
+                    asseturi = vsc.URLROOT + os.path.join(extensiondir, version['version'], targetPlatform)
+                else:                    
+                    asseturi = vsc.URLROOT + os.path.join(extensiondir, version['version'])
+
                 version['assetUri'] = asseturi
                 version['fallbackAssetUri'] = asseturi
                 for asset in version['files']:
                     asset['source'] = asseturi + '/' + asset['assetType']
-
-            log.info(f'Extension being downloaded: {extension}')
-
-            # asseturi = vsc.URLROOT + os.path.join(extensiondir, extension['versions'][0]['version'])
-            # extension['versions'][0]['assetUri'] = asseturi
-            # extension['versions'][0]['fallbackAssetUri'] = asseturi
-            # for asset in extension['versions'][0]['files']:
-            #     asset['source'] = asseturi + '/' + asset['assetType']
-
-            # log.info(f'Extension being downloaded: {extension}')
 
             # Map statistics for later lookup
             stats = {
